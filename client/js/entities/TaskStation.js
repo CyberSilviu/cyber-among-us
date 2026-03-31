@@ -24,7 +24,7 @@ class TaskStation {
     this._draw();
 
     // Pulse tween for assigned tasks
-    if (isAssigned && !completed) {
+    if (isAssigned && !this.completed) {
       scene.tweens.add({
         targets: this.gfx,
         alpha: { from: 1, to: 0.5 },
