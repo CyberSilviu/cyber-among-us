@@ -27,7 +27,24 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Wrap everything so a JS error shows on screen instead of a silent blue canvas.
+    try {
+      this._createGame();
+    } catch (err) {
+      console.error('[GameScene] create() threw:', err);
+      this.add.text(20, 20, 'ERROR: ' + err.message, {
+        fontSize: '14px', fontFamily: 'monospace', color: '#ff3355',
+        wordWrap: { width: this.scale.width - 40 },
+      }).setScrollFactor(0).setDepth(999);
+    }
+  }
+
+  _createGame() {
     const data = this._gameData;
+    if (!data)      throw new Error('gameData is null — game-started event not received');
+    if (!data.id)   throw new Error('data.id missing — private player data not received');
+    if (!data.mapData) throw new Error('data.mapData missing');
+
     this._me = {
       id: data.id,
       name: data.name,
@@ -54,23 +71,32 @@ class GameScene extends Phaser.Scene {
     this._drawSabotagePoints();
     this._drawTaskStations(data.tasksAssigned || []);
 
-    // Spawn existing players
-    (data.allPlayers || []).forEach(p => this._spawnPlayer(p));
+    // Spawn LOCAL player first from private data — this is guaranteed to have the
+    // correct ID and position regardless of what allPlayers contains.
+    this._spawnPlayer({
+      id: this._me.id,
+      name: this._me.name,
+      color: this._me.color,
+      x: this._me.x || this._mapData.spawnPoint.x,
+      y: this._me.y || this._mapData.spawnPoint.y,
+      alive: true,
+    });
 
-    // Spawn self (may already be in allPlayers, skip if so)
-    if (!this._players.has(this._me.id)) {
-      this._spawnPlayer({ id: this._me.id, name: this._me.name, color: this._me.color, x: this._me.x, y: this._me.y, alive: true });
-    }
+    // Spawn all other players from allPlayers (skip self — already added above).
+    (data.allPlayers || []).forEach(p => {
+      if (p.id !== this._me.id) this._spawnPlayer(p);
+    });
 
-    // Camera follows local player.
-    // centerOn() snaps the camera immediately so the player is never off-screen
-    // on frame 1 while the lerp eases in from (0,0).
+    // Camera — mySprite is guaranteed to exist since we spawned it above.
     const mySprite = this._players.get(this._me.id);
     if (mySprite) {
       this.cameras.main.centerOn(mySprite.x, mySprite.y);
       this.cameras.main.startFollow(mySprite.container, true, 0.1, 0.1);
+    } else {
+      // Should never reach here, but log it and centre on spawn point.
+      console.error('[GameScene] mySprite still null after explicit spawn — id:', this._me.id);
+      this.cameras.main.centerOn(this._mapData.spawnPoint.x, this._mapData.spawnPoint.y);
     }
-
 
     // Input
     this._keys = this.input.keyboard.addKeys({
