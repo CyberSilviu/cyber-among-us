@@ -121,6 +121,11 @@ class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-R', () => this._tryReport());
     this.input.keyboard.on('keydown-F', () => this._tryVent());
 
+    // Clickable task button
+    document.getElementById('btn-do-task').onclick = () => this._tryOpenTask();
+    // Vent cancel button
+    document.getElementById('btn-vent-cancel').onclick = () => this._hideVentMenu();
+
     // Position broadcast interval
     this._moveInterval = setInterval(() => {
       if (this._me.alive) {
@@ -386,12 +391,17 @@ class GameScene extends Phaser.Scene {
 
     // Task stations (antivirus only)
     if (this._me.role === 'antivirus') {
+      let foundTask = false;
       this._tasks.forEach((station, taskId) => {
         if (station.isAssigned && !station.completed && station.isNearby(px, py, INTER_R)) {
           this._nearbyTaskId = taskId;
+          foundTask = true;
+          const task = this._mapData.tasks.find(t => t.id === taskId);
+          this._showTaskPrompt(task ? task.name : 'Task');
           hints.push('[E] Do Task');
         }
       });
+      if (!foundTask) this._hideTaskPrompt();
     }
 
     // Kill target (virus only)
@@ -464,8 +474,51 @@ class GameScene extends Phaser.Scene {
     if (this._me.role !== 'virus' || !this._nearbyVentId) return;
     const vent = this._mapData.vents.find(v => v.id === this._nearbyVentId);
     if (!vent || !vent.connections.length) return;
-    // For simplicity, jump to first connection
-    SocketManager.useVent(this._nearbyVentId, vent.connections[0]);
+
+    // If vent menu is already open, close it (toggle)
+    const menu = document.getElementById('vent-menu');
+    if (!menu.classList.contains('hidden')) {
+      this._hideVentMenu();
+      return;
+    }
+
+    this._showVentMenu(vent);
+  }
+
+  _showVentMenu(vent) {
+    const menu = document.getElementById('vent-menu');
+    const optContainer = document.getElementById('vent-menu-options');
+    optContainer.innerHTML = '';
+
+    vent.connections.forEach(targetId => {
+      const targetVent = this._mapData.vents.find(v => v.id === targetId);
+      const room = targetVent ? this._mapData.rooms.find(r => r.id === targetVent.room) : null;
+      const label = room ? room.name : targetId;
+
+      const btn = document.createElement('button');
+      btn.className = 'vent-option-btn';
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        this._hideVentMenu();
+        SocketManager.useVent(vent.id, targetId);
+      });
+      optContainer.appendChild(btn);
+    });
+
+    menu.classList.remove('hidden');
+  }
+
+  _hideVentMenu() {
+    document.getElementById('vent-menu').classList.add('hidden');
+  }
+
+  _showTaskPrompt(taskName) {
+    document.getElementById('task-prompt-name').textContent = taskName;
+    document.getElementById('task-prompt').classList.remove('hidden');
+  }
+
+  _hideTaskPrompt() {
+    document.getElementById('task-prompt').classList.add('hidden');
   }
 
   // ── Socket Listeners ──────────────────────────────────────────────────────
@@ -513,6 +566,8 @@ class GameScene extends Phaser.Scene {
     });
 
     socket.on('meeting-start', (data) => {
+      this._hideVentMenu();
+      this._hideTaskPrompt();
       this._clearBodies();
       this.scene.pause();
       this.scene.launch('VotingScene', { meetingData: data, myId: this._me.id, myRole: this._me.role, myAlive: this._me.alive });
@@ -553,6 +608,8 @@ class GameScene extends Phaser.Scene {
 
     socket.on('game-over', (data) => {
       clearInterval(this._moveInterval);
+      this._hideVentMenu();
+      this._hideTaskPrompt();
       this._showGameOver(data);
     });
 
@@ -700,6 +757,8 @@ class GameScene extends Phaser.Scene {
 
   shutdown() {
     clearInterval(this._moveInterval);
+    this._hideVentMenu();
+    this._hideTaskPrompt();
     const socket = SocketManager.get();
     if (socket) {
       socket.off('players-update');
