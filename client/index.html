@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberPurge</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── Lobby Overlay ──────────────────────────────────────────────────── -->
+  <div id="lobby-overlay" class="overlay active">
+    <div class="lobby-container">
+      <h1 class="game-title">CYBER<span>PURGE</span></h1>
+      <p class="game-subtitle">Multiplayer Cybersecurity Survival</p>
+
+      <div class="lobby-form">
+        <div class="form-group">
+          <label>Player Name</label>
+          <input id="player-name" type="text" maxlength="16" placeholder="Enter name..." autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+          <label>Pick Color</label>
+          <div id="color-picker" class="color-picker"></div>
+        </div>
+
+        <div id="lobby-buttons" class="button-group">
+          <button id="btn-create" class="btn btn-primary">Create Room</button>
+          <button id="btn-join-show" class="btn btn-secondary">Join Room</button>
+        </div>
+
+        <div id="join-form" class="hidden">
+          <div class="form-group">
+            <label>Room Code</label>
+            <input id="room-code-input" type="text" maxlength="6" placeholder="XXXXXX" autocomplete="off"
+                   style="text-transform:uppercase; letter-spacing:4px; font-size:1.4rem;" />
+          </div>
+          <button id="btn-join-confirm" class="btn btn-primary">Join</button>
+          <button id="btn-join-cancel" class="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Waiting Room Overlay ───────────────────────────────────────────── -->
+  <div id="waiting-overlay" class="overlay hidden">
+    <div class="waiting-container">
+      <div class="room-code-display">
+        <span class="room-label">ROOM CODE</span>
+        <span id="display-room-code" class="room-code">------</span>
+        <button id="btn-copy-code" class="btn btn-ghost btn-sm">Copy</button>
+      </div>
+
+      <div id="waiting-players" class="waiting-players"></div>
+
+      <div id="host-controls" class="hidden">
+        <div class="settings-panel">
+          <h3>Game Settings</h3>
+          <div class="setting-row">
+            <label>Viruses: <span id="val-viruses">2</span></label>
+            <input id="set-viruses" type="range" min="1" max="3" value="2" />
+          </div>
+          <div class="setting-row">
+            <label>Tasks per player: <span id="val-tasks">5</span></label>
+            <input id="set-tasks" type="range" min="2" max="10" value="5" />
+          </div>
+          <div class="setting-row">
+            <label>Kill cooldown: <span id="val-cooldown">30</span>s</label>
+            <input id="set-cooldown" type="range" min="10" max="60" value="30" step="5" />
+          </div>
+        </div>
+        <button id="btn-start" class="btn btn-danger btn-large">START GAME</button>
+      </div>
+      <div id="waiting-msg" class="waiting-msg">Waiting for host to start...</div>
+    </div>
+  </div>
+
+  <!-- ── HUD (shown during gameplay) ───────────────────────────────────── -->
+  <div id="hud" class="hidden">
+    <div id="hud-top">
+      <div id="hud-role" class="hud-role"></div>
+      <div id="hud-task-bar-wrap">
+        <div class="task-bar-label">SYSTEM INTEGRITY</div>
+        <div id="hud-task-bar-bg">
+          <div id="hud-task-bar-fill"></div>
+        </div>
+        <span id="hud-task-pct">0%</span>
+      </div>
+      <div id="hud-meeting-btn-wrap">
+        <button id="btn-meeting" class="hud-btn">&#9888; EMERGENCY</button>
+      </div>
+    </div>
+
+    <div id="hud-bottom">
+      <div id="hud-kill-cooldown" class="hud-cooldown hidden">
+        <span>KILL</span>
+        <div id="kill-cd-bar-bg"><div id="kill-cd-bar-fill"></div></div>
+        <span id="kill-cd-text">30s</span>
+      </div>
+      <div id="hud-action-hint" class="action-hint"></div>
+      <div id="hud-sabotage-btns" class="hidden">
+        <button class="sabotage-btn" data-id="s1">Lights</button>
+        <button class="sabotage-btn" data-id="s2">Doors</button>
+        <button class="sabotage-btn" data-id="s3">Reactor</button>
+      </div>
+    </div>
+
+    <div id="sabotage-alert" class="sabotage-alert hidden"></div>
+    <div id="minimap" class="minimap"></div>
+  </div>
+
+  <!-- ── Voting Overlay ─────────────────────────────────────────────────── -->
+  <div id="voting-overlay" class="overlay hidden">
+    <div class="voting-container">
+      <div class="voting-header">
+        <h2 id="voting-title">EMERGENCY MEETING</h2>
+        <div id="voting-timer-wrap">
+          <span id="voting-phase-label">DISCUSSION</span>
+          <span id="voting-timer">30</span>
+        </div>
+      </div>
+      <div class="voting-body">
+        <div id="voting-players" class="voting-players"></div>
+        <div id="chat-panel" class="chat-panel">
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" maxlength="200" placeholder="Type to discuss..." autocomplete="off" />
+            <button id="btn-chat-send" class="btn btn-ghost btn-sm">Send</button>
+          </div>
+        </div>
+      </div>
+      <div id="vote-result-banner" class="vote-result-banner hidden"></div>
+    </div>
+  </div>
+
+  <!-- ── Mini-Game Overlay ──────────────────────────────────────────────── -->
+  <div id="minigame-overlay" class="overlay hidden">
+    <div id="minigame-container" class="minigame-container">
+      <div id="minigame-title" class="minigame-title">TASK</div>
+      <div id="minigame-content"></div>
+      <div id="minigame-status" class="minigame-status"></div>
+      <button id="btn-close-task" class="btn btn-ghost">Cancel [ESC]</button>
+    </div>
+  </div>
+
+  <!-- ── Game Over Overlay ──────────────────────────────────────────────── -->
+  <div id="gameover-overlay" class="overlay hidden">
+    <div class="gameover-container">
+      <h2 id="gameover-title">GAME OVER</h2>
+      <p id="gameover-reason"></p>
+      <div id="gameover-roles"></div>
+      <button id="btn-play-again" class="btn btn-primary btn-large">Back to Lobby</button>
+    </div>
+  </div>
+
+  <!-- ── Phaser Canvas ──────────────────────────────────────────────────── -->
+  <div id="game-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <script src="js/network/SocketManager.js"></script>
+  <script src="js/entities/PlayerSprite.js"></script>
+  <script src="js/entities/TaskStation.js"></script>
+  <script src="js/ui/HUD.js"></script>
+  <script src="js/ui/ChatPanel.js"></script>
+  <script src="js/scenes/LobbyScene.js"></script>
+  <script src="js/scenes/GameScene.js"></script>
+  <script src="js/scenes/MiniGameScene.js"></script>
+  <script src="js/scenes/VotingScene.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
